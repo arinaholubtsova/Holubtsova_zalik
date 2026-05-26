@@ -1,50 +1,49 @@
-# Welcome to your Expo app 👋
+# Quiz App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Мобільний застосунок-вікторина, розроблений за допомогою React Native, Expo та TypeScript.
 
-## Get started
+## Опис проєкту
 
-1. Install dependencies
+Застосунок реалізує проходження тесту з кількома питаннями та обмеженням часу на відповідь. Для кожного питання запускається таймер на 15 секунд. За декілька секунд до завершення часу відтворюється звукове попередження, а після завершення часу користувач отримує візуальне повідомлення про те, що час вийшов.
 
-   ```bash
-   npm install
-   ```
+## Реалізований функціонал
 
-2. Start the app
+- відображення тестових питань;
+- вибір відповіді з кількох варіантів;
+- таймер на 15 секунд для кожного питання;
+- анімована смуга часу;
+- звукове попередження про завершення часу;
+- вібрація при завершенні часу;
+- візуальне повідомлення про завершення часу;
+- автоматичний перехід до наступного питання;
+- підрахунок правильних і неправильних відповідей;
+- екран результатів;
+- можливість повторного проходження тесту.
 
-   ```bash
-   npx expo start
-   ```
+## Технології
 
-In the output, you'll find options to open the app in a
+- React Native
+- Expo
+- TypeScript
+- expo-av
+- React Hooks
+- Animated API
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Запуск проєкту
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Встановити пакет для роботи зі звуком:
+npx expo install expo-av
+Запустити проєкт:
+npx expo start
 
-## Get a fresh project
+Додаткові файли
 
-When you're ready, run:
+Для роботи звукового сповіщення використовується файл:
 
-```bash
-npm run reset-project
-```
+assets/timeout.mp3
+Логіка роботи
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Після запуску застосунку користувачу відображається питання з варіантами відповідей. Одночасно запускається таймер на 15 секунд. Коли час наближається до завершення, програма відтворює звукове попередження. Якщо користувач не обирає відповідь до завершення таймера, застосунок показує повідомлення, запускає вібрацію та автоматично переходить до наступного питання. Після проходження всіх питань відображається екран результатів.
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Автор
+Орина Голубцова

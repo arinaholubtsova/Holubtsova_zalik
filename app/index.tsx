@@ -1,5 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, Animated, Easing } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  SafeAreaView,
+  Animated,
+  Easing,
+  Vibration,
+  Alert,
+} from 'react-native';
+import { Audio } from 'expo-av';
 
 interface Question {
   question: string;
@@ -8,17 +19,33 @@ interface Question {
 }
 
 const QUESTIONS: Question[] = [
-  { question: "Який компонент у React Native використовується для виведення тексту?", options: ["View", "Text", "Label", "Span"], correct: 1 },
-  { question: "Яка бібліотека є стандартом для навігації в React Native?", options: ["React Router Dom", "React Navigation", "Native History API", "Expo Router"], correct: 1 },
-  { question: "Для чого використовується AsyncStorage?", options: ["Для стилізації", "Для збереження даних", "Для швидкості CPU", "Для 3D графіки"], correct: 1 },
-  { question: "Як додати внутрішні відступи (в межах елемента) в стилях?", options: ["margin", "padding", "spacing", "borderWidth"], correct: 1 },
-  { question: "Яка команда ініціалізує новий проект через Expo?", options: ["create-react-app", "create-expo-app", "expo start", "rn init"], correct: 1 },
-  { question: "Який хук використовується для стану в компонентах?", options: ["useEffect", "useState", "useRef", "useContext"], correct: 1 },
-  { question: "Чим відрізняється FlatList від ScrollView?", options: ["Нічим", "FlatList рендерить лише видиме", "ScrollView швидше", "FlatList без прокрутки"], correct: 1 },
-  { question: "Яка властивість Flexbox визначає напрямок головної осі?", options: ["alignItems", "flexDirection", "justifyContent", "flexWrap"], correct: 1 },
-  { question: "Як називається інструмент для перегляду логів Expo?", options: ["Expo Go / Dev Tools", "Chrome Task Manager", "VS Search", "Android Emulator"], correct: 0 },
-  { question: "Який метод навігації переводить на новий екран?", options: ["goBack()", "navigate()", "pushStack()", "change()"], correct: 1 }
+  { question: 'Який компонент у React Native використовується для виведення тексту?', options: ['View', 'Text', 'Label', 'Span'], correct: 1 },
+  { question: 'Яка бібліотека є стандартом для навігації в React Native?', options: ['React Router Dom', 'React Navigation', 'Native History API', 'Expo Router'], correct: 1 },
+  { question: 'Для чого використовується AsyncStorage?', options: ['Для стилізації', 'Для збереження даних', 'Для швидкості CPU', 'Для 3D графіки'], correct: 1 },
+  { question: 'Як додати внутрішні відступи в стилях?', options: ['margin', 'padding', 'spacing', 'borderWidth'], correct: 1 },
+  { question: 'Яка команда ініціалізує новий проект через Expo?', options: ['create-react-app', 'create-expo-app', 'expo start', 'rn init'], correct: 1 },
+  { question: 'Який хук використовується для стану в компонентах?', options: ['useEffect', 'useState', 'useRef', 'useContext'], correct: 1 },
+  { question: 'Чим відрізняється FlatList від ScrollView?', options: ['Нічим', 'FlatList рендерить лише видиме', 'ScrollView швидше', 'FlatList без прокрутки'], correct: 1 },
+  { question: 'Яка властивість Flexbox визначає напрямок головної осі?', options: ['alignItems', 'flexDirection', 'justifyContent', 'flexWrap'], correct: 1 },
+  { question: 'Як називається інструмент для перегляду логів Expo?', options: ['Expo Go / Dev Tools', 'Chrome Task Manager', 'VS Search', 'Android Emulator'], correct: 0 },
+  { question: 'Який метод навігації переводить на новий екран?', options: ['goBack()', 'navigate()', 'pushStack()', 'change()'], correct: 1 },
 ];
+
+const playTimeoutSound = async () => {
+  try {
+    const { sound } = await Audio.Sound.createAsync(
+      require('../assets/timeout.mp3')
+    );
+
+    await sound.playAsync();
+
+    setTimeout(async () => {
+      await sound.unloadAsync();
+    }, 1500);
+  } catch (error) {
+    console.log('Sound error:', error);
+  }
+};
 
 export default function QuizApp() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -26,6 +53,7 @@ export default function QuizApp() {
   const [wrongAnswers, setWrongAnswers] = useState(0);
   const [showScore, setShowScore] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [timeIsOver, setTimeIsOver] = useState(false);
 
   const timerValue = useRef(new Animated.Value(1)).current;
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
@@ -33,7 +61,9 @@ export default function QuizApp() {
   useEffect(() => {
     if (showScore) return;
 
+    setTimeIsOver(false);
     timerValue.setValue(1);
+
     animationRef.current = Animated.timing(timerValue, {
       toValue: 0,
       duration: 15000,
@@ -41,13 +71,31 @@ export default function QuizApp() {
       useNativeDriver: false,
     });
 
+    const warningTimer = setTimeout(() => {
+      if (selectedOption === null) {
+        playTimeoutSound();
+      }
+    }, 12000);
+
     animationRef.current.start(({ finished }) => {
       if (finished && selectedOption === null) {
+        setTimeIsOver(true);
+
+        Vibration.vibrate(700);
+
+        Alert.alert(
+          'Час вийшов!',
+          'Відповідь не зарахована. Переходимо до наступного питання.'
+        );
+
         handleAnswer(-1);
       }
     });
 
-    return () => animationRef.current?.stop();
+    return () => {
+      clearTimeout(warningTimer);
+      animationRef.current?.stop();
+    };
   }, [currentQuestion, showScore]);
 
   const handleAnswer = (index: number) => {
@@ -57,14 +105,20 @@ export default function QuizApp() {
     setSelectedOption(index);
 
     const correct = index === QUESTIONS[currentQuestion].correct;
-    if (correct) setScore(prev => prev + 1);
-    else setWrongAnswers(prev => prev + 1);
+
+    if (correct) {
+      setScore(prev => prev + 1);
+    } else {
+      setWrongAnswers(prev => prev + 1);
+    }
 
     setTimeout(() => {
       const next = currentQuestion + 1;
+
       if (next < QUESTIONS.length) {
         setCurrentQuestion(next);
         setSelectedOption(null);
+        setTimeIsOver(false);
       } else {
         setShowScore(true);
       }
@@ -77,13 +131,12 @@ export default function QuizApp() {
     setWrongAnswers(0);
     setShowScore(false);
     setSelectedOption(null);
+    setTimeIsOver(false);
   };
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-
-        {/* TOP BAR */}
         <View style={styles.topBar}>
           <View style={styles.progressRow}>
             <Text style={styles.progressLabel}>
@@ -94,6 +147,7 @@ export default function QuizApp() {
               <View style={[styles.badge, styles.wrongBg]}>
                 <Text style={styles.badgeText}>✕ {wrongAnswers}</Text>
               </View>
+
               <View style={[styles.badge, styles.correctBg]}>
                 <Text style={styles.badgeText}>✓ {score}</Text>
               </View>
@@ -101,29 +155,51 @@ export default function QuizApp() {
           </View>
 
           <View style={styles.track}>
-            <View style={[styles.fill, { width: `${((currentQuestion + 1) / QUESTIONS.length) * 100}%` }]} />
+            <View
+              style={[
+                styles.fill,
+                {
+                  width: `${((currentQuestion + 1) / QUESTIONS.length) * 100}%`,
+                },
+              ]}
+            />
           </View>
         </View>
 
         {showScore ? (
           <View style={styles.resultCard}>
             <Text style={styles.resultTitle}>Результати</Text>
-            <Text style={styles.resultScore}>{score} / {QUESTIONS.length}</Text>
+            <Text style={styles.resultScore}>
+              {score} / {QUESTIONS.length}
+            </Text>
 
             <TouchableOpacity style={styles.resetBtn} onPress={reset}>
               <Text style={styles.resetBtnText}>Спробувати ще раз</Text>
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={styles.quizCard}>
+          <View style={[styles.quizCard, timeIsOver && styles.timeoutCard]}>
+            <Animated.View
+              style={[
+                styles.timerBar,
+                {
+                  width: timerValue.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0%', '100%'],
+                  }),
+                  backgroundColor: timerValue.interpolate({
+                    inputRange: [0, 0.2, 1],
+                    outputRange: ['#FF5252', '#FFD740', '#4CAF50'],
+                  }),
+                },
+              ]}
+            />
 
-            <Animated.View style={[styles.timerBar, {
-              width: timerValue.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
-              backgroundColor: timerValue.interpolate({
-                inputRange: [0, 0.2, 1],
-                outputRange: ['#FF5252', '#FFD740', '#4CAF50']
-              })
-            }]} />
+            {timeIsOver && (
+              <View style={styles.timeoutBanner}>
+                <Text style={styles.timeoutText}>⏰ Час вийшов!</Text>
+              </View>
+            )}
 
             <Text style={styles.question}>
               {QUESTIONS[currentQuestion].question}
@@ -146,7 +222,10 @@ export default function QuizApp() {
                   style={[styles.option, extraStyle]}
                   onPress={() => handleAnswer(i)}
                 >
-                  <Text style={styles.optionText}>{String.fromCharCode(65 + i)}. {opt}</Text>
+                  <Text style={styles.optionText}>
+                    {String.fromCharCode(65 + i)}. {opt}
+                  </Text>
+
                   {selectedOption !== null && isCorrect && (
                     <Text style={styles.labelOk}>Правильно</Text>
                   )}
@@ -155,14 +234,12 @@ export default function QuizApp() {
             })}
           </View>
         )}
-
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-
   safe: {
     flex: 1,
     backgroundColor: '#F7F9FC',
@@ -204,8 +281,13 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
 
-  wrongBg: { backgroundColor: '#FFEBEE' },
-  correctBg: { backgroundColor: '#E8F5E9' },
+  wrongBg: {
+    backgroundColor: '#FFEBEE',
+  },
+
+  correctBg: {
+    backgroundColor: '#E8F5E9',
+  },
 
   badgeText: {
     fontSize: 15,
@@ -233,6 +315,27 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.12,
     shadowRadius: 14,
+  },
+
+  timeoutCard: {
+    borderWidth: 2,
+    borderColor: '#FF5252',
+    backgroundColor: '#FFF5F5',
+  },
+
+  timeoutBanner: {
+    backgroundColor: '#FF5252',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    marginBottom: 12,
+  },
+
+  timeoutText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 
   timerBar: {
